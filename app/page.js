@@ -1,28 +1,43 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Menu, X, Instagram, Mail, ArrowRight, Play, ExternalLink, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Instagram, Mail, ArrowRight, Play, ExternalLink } from 'lucide-react';
 
 // --- UTILS ---
 
+// Безопасная функция для улучшения качества изображений Wix
 const getWixImageUrl = (src, targetWidth) => {
   if (!src) return '';
-  if (!src.includes('wixstatic.com')) return src;
+  // Если это не Wix или ссылка странная, возвращаем как есть, чтобы не сломать
+  if (typeof src !== 'string' || !src.includes('wixstatic.com')) return src;
 
-  const match = src.match(/w_(\d+),h_(\d+)/);
-  if (!match) return src;
+  try {
+    // Ищем текущие размеры в URL (формат Wix: w_490,h_615)
+    const match = src.match(/w_(\d+),h_(\d+)/);
+    
+    // Если не нашли размеры в URL, возвращаем оригинал
+    if (!match) return src;
 
-  const [_, w, h] = match;
-  const currentWidth = parseInt(w);
-  const currentHeight = parseInt(h);
-  
-  const aspectRatio = currentHeight / currentWidth;
-  const newHeight = Math.round(targetWidth * aspectRatio);
+    const [_, w, h] = match;
+    const currentWidth = parseInt(w);
+    const currentHeight = parseInt(h);
+    
+    // Защита от деления на ноль
+    if (currentWidth === 0) return src;
 
-  return src
-    .replace(/w_\d+,h_\d+/, `w_${targetWidth},h_${newHeight}`)
-    .replace(/q_\d+/, 'q_90'); // High quality
+    // Считаем пропорции
+    const aspectRatio = currentHeight / currentWidth;
+    const newHeight = Math.round(targetWidth * aspectRatio);
+
+    // Заменяем размеры и качество
+    return src
+      .replace(/w_\d+,h_\d+/, `w_${targetWidth},h_${newHeight}`)
+      .replace(/q_\d+/, 'q_90');
+  } catch (e) {
+    console.error("Error processing image URL:", src, e);
+    return src; // В случае любой ошибки возвращаем оригинал
+  }
 };
 
 // --- DATA ---
@@ -247,10 +262,10 @@ const Header = ({ activeSection, setActiveSection }) => {
       </nav>
 
       <button 
-        className="md:hidden z-50 p-2"
+        className="md:hidden z-50 p-2 bg-black/80 backdrop-blur-md rounded-full mt-2 mr-2"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
-        {isMenuOpen ? <X /> : <Menu />}
+        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       <AnimatePresence>
@@ -395,8 +410,8 @@ const SingleProjectLayout = ({ category, title, items, setSelectedId }) => {
         <motion.div
           layoutId={`card-${item.id}`}
           key={item.id}
-          onClick={() => setSelectedId(item.id)}
-          className="relative group cursor-pointer"
+          // Remove onClick here to disable opening lightbox since these are large enough
+          className="relative group"
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "100px" }}
@@ -406,7 +421,7 @@ const SingleProjectLayout = ({ category, title, items, setSelectedId }) => {
             <motion.img
               src={getWixImageUrl(item.src, 1200)}
               alt={item.title}
-              className="w-full h-auto object-cover block transition-all duration-700 group-hover:brightness-105"
+              className="w-full h-auto object-cover block"
             />
           </div>
           {/* Subtle caption, distinct from other sections */}
