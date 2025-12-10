@@ -1,42 +1,34 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Instagram, Mail, ArrowRight, Play, ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { Menu, X, Instagram, Mail, ArrowRight, Play, ExternalLink, ChevronRight, Sparkles } from 'lucide-react';
 
 // --- UTILS ---
 
-// Безопасная функция для улучшения качества изображений Wix
 const getWixImageUrl = (src, targetWidth) => {
   if (!src) return '';
-  // Если это не Wix или ссылка странная, возвращаем как есть, чтобы не сломать
   if (typeof src !== 'string' || !src.includes('wixstatic.com')) return src;
 
   try {
-    // Ищем текущие размеры в URL (формат Wix: w_490,h_615)
     const match = src.match(/w_(\d+),h_(\d+)/);
-    
-    // Если не нашли размеры в URL, возвращаем оригинал
     if (!match) return src;
 
     const [_, w, h] = match;
     const currentWidth = parseInt(w);
     const currentHeight = parseInt(h);
     
-    // Защита от деления на ноль
     if (currentWidth === 0) return src;
 
-    // Считаем пропорции
     const aspectRatio = currentHeight / currentWidth;
     const newHeight = Math.round(targetWidth * aspectRatio);
 
-    // Заменяем размеры и качество
     return src
       .replace(/w_\d+,h_\d+/, `w_${targetWidth},h_${newHeight}`)
       .replace(/q_\d+/, 'q_90');
   } catch (e) {
     console.error("Error processing image URL:", src, e);
-    return src; // В случае любой ошибки возвращаем оригинал
+    return src;
   }
 };
 
@@ -238,6 +230,33 @@ const Header = ({ activeSection, setActiveSection }) => {
     { name: "About", id: "about" },
   ];
 
+  // Mobile menu items animation variants
+  const menuVariants = {
+    open: {
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+    },
+    closed: {
+      transition: { staggerChildren: 0.05, staggerDirection: -1 }
+    }
+  };
+
+  const itemVariants = {
+    open: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        y: { stiffness: 1000, velocity: -100 }
+      }
+    },
+    closed: {
+      opacity: 0,
+      y: 50,
+      transition: {
+        y: { stiffness: 1000 }
+      }
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 mix-blend-difference text-white px-6 py-6 flex justify-between items-center">
       <div 
@@ -262,33 +281,49 @@ const Header = ({ activeSection, setActiveSection }) => {
       </nav>
 
       <button 
-        className="md:hidden z-50 p-2 bg-black/80 backdrop-blur-md rounded-full mt-2 mr-2"
+        className="md:hidden z-50 p-2 relative group"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
-        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        {isMenuOpen ? <X size={24} className="text-white" /> : <Menu size={24} />}
       </button>
 
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-0 bg-black text-white flex flex-col justify-center items-center z-40 gap-8"
+            initial={{ opacity: 0, y: "-100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "-100%" }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className="fixed inset-0 bg-zinc-950 text-white flex flex-col justify-center items-center z-40 gap-8"
           >
-            {links.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => {
-                  setActiveSection(link.id);
-                  setIsMenuOpen(false);
-                }}
-                className="text-2xl uppercase tracking-widest font-light hover:text-gray-400 transition-colors"
-              >
-                {link.name}
-              </button>
-            ))}
+             <button 
+              className="absolute top-6 right-6 p-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+               <X size={32} />
+            </button>
+            
+            <motion.div 
+              variants={menuVariants}
+              initial="closed"
+              animate="open"
+              exit="closed"
+              className="flex flex-col items-center gap-8"
+            >
+              {links.map((link) => (
+                <motion.button
+                  variants={itemVariants}
+                  key={link.id}
+                  onClick={() => {
+                    setActiveSection(link.id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-3xl uppercase tracking-widest font-light hover:text-gray-400 transition-colors"
+                >
+                  {link.name}
+                </motion.button>
+              ))}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -597,8 +632,8 @@ const About = () => {
 
 const Footer = () => {
   return (
-    <footer className="bg-black text-white py-24 px-4 md:px-12 border-t border-white/10">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
+    <footer className="bg-black text-white py-24 px-4 md:px-12 border-t border-white/10 flex flex-col items-center">
+      <div className="max-w-7xl w-full mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
         <div>
           <h4 className="text-3xl md:text-4xl font-light uppercase tracking-wide mb-8">Let&apos;s create something<br/>memorable together.</h4>
           <a 
@@ -624,6 +659,13 @@ const Footer = () => {
           </p>
         </div>
       </div>
+
+       {/* ART-VISION BADGE */}
+       <div className="w-full border-t border-white/10 mt-12 py-6 text-center">
+            <a href="https://art-vision.online" className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 hover:text-white transition-colors flex items-center justify-center gap-2 group">
+                Site developed by <span className="font-bold flex items-center gap-1 group-hover:text-cyan-400 transition-colors">art-vision <Sparkles size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" /></span> studio
+            </a>
+        </div>
     </footer>
   );
 };
